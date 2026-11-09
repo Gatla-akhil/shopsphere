@@ -22,6 +22,31 @@ export default function HomePage() {
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [orderDone, setOrderDone] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+          setCustomerName(data.user.name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      setUserMenuOpen(false);
+      toast("Signed out successfully");
+    } catch {
+      toast("Error signing out");
+    }
+  }
 
   useEffect(() => {
     try {
@@ -102,7 +127,52 @@ export default function HomePage() {
           <label htmlFor="search" className="sr-only">Search products</label><input id="search" value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setSearchOpen(true)} placeholder="Search products, brands and more..." className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none sm:px-4" />
           <button aria-label="Search" className="grid w-12 shrink-0 place-items-center bg-brand text-white transition hover:bg-ink"><Search size={18} /></button>
         </form>
-        <Link href="/login" className="hidden rounded-xl p-2 text-left hover:bg-sand sm:flex sm:items-center sm:gap-2"><UserRound size={19} /><span className="hidden lg:block"><span className="block text-[10px] text-slate-500">Welcome</span><b className="block text-xs">Sign in</b></span></Link>
+        {currentUser ? (
+          <div className="relative hidden sm:block">
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 rounded-xl p-2 text-left hover:bg-sand transition"
+            >
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-brand text-xs font-bold text-white">
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden lg:block">
+                <span className="block text-[10px] text-slate-500">Hello</span>
+                <b className="block text-xs max-w-[100px] truncate">{currentUser.name.split(" ")[0]}</b>
+              </span>
+              <ChevronDown size={13} className="text-slate-400" />
+            </button>
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-black/5 bg-white p-3 shadow-xl z-50">
+                <p className="text-xs font-bold text-ink">{currentUser.name}</p>
+                <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                <div className="mt-1 mb-2">
+                  <span className="rounded-full bg-[#e8f3ef] px-2 py-0.5 text-[10px] font-bold text-brand uppercase">
+                    {currentUser.role}
+                  </span>
+                </div>
+                <div className="my-2 border-t border-slate-100" />
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="hidden rounded-xl p-2 text-left hover:bg-sand sm:flex sm:items-center sm:gap-2"
+          >
+            <UserRound size={19} />
+            <span className="hidden lg:block">
+              <span className="block text-[10px] text-slate-500">Welcome</span>
+              <b className="block text-xs">Sign in</b>
+            </span>
+          </Link>
+        )}
         <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-2 rounded-xl p-2 hover:bg-sand" aria-label={`Open cart, ${cartCount} items`}><ShoppingCart size={22} /><span className="hidden text-sm font-semibold sm:block">Cart</span>{cartCount > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-black text-ink">{cartCount}</span>}</button>
       </div>
       <nav className="border-t border-slate-100"><div className="container flex items-center gap-1 overflow-x-auto py-2.5 text-xs font-semibold">
